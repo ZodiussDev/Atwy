@@ -26,12 +26,11 @@ jobs:
           echo $default | cat >default
           echo "Using default scheme: $default"
 
-      - name: Select iOS 18.2 Simulator
+      - name: Select Latest Available iOS Version
         run: |
-          # Find an available iPhone simulator running iOS 18.2
-          device=$(xcrun xctrace list devices 2>&1 | grep -E 'iPhone.*\(18\.2\)' | head -1 | awk -F ' \\(' '{print $1}' | sed -e "s/ Simulator$//")
-          echo "Selected device: $device"
-          echo "SIMULATOR_DEVICE=$device" >> $GITHUB_ENV
+          latest_ios_version=$(xcrun simctl list runtimes | grep -oE 'iOS [0-9]+\.[0-9]+' | sort -V | tail -1 | awk '{print $2}')
+          echo "Using iOS $latest_ios_version"
+          echo "IOS_VERSION=$latest_ios_version" >> $GITHUB_ENV
 
       - name: Build and Archive
         env:
@@ -49,16 +48,6 @@ jobs:
             -sdk iphoneos \
             -archivePath "$ARCHIVE_PATH" \
             -destination "generic/platform=iOS"
-
-      - name: Export IPA
-        env:
-          EXPORT_PATH: "build/output"
-          EXPORT_OPTIONS_PLIST: "./ExportOptions.plist"
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath "build/App.xcarchive" \
-            -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
 
       - name: Upload IPA as Artifact
         uses: actions/upload-artifact@v4
